@@ -21,11 +21,15 @@ import { BaseState, SearchState, SetStateAction } from "./types";
  *       <button onClick={() => set({ page: page + 1 })}>
  *         Next Page
  *       </button>
+ *       <button onClick={() => set({ query: undefined })}>
+ *         Clear Search
+ *       </button>
  *     </div>
  *   );
  * }
  * ```
  */
+
 export function createSearch<State extends Record<string, any>>(
   initialState: BaseState<State>
 ): () => SearchState<State> {
@@ -38,9 +42,26 @@ export function createSearch<State extends Record<string, any>>(
         to: ".",
         search: (prevRaw: Record<string, any>) => {
           const prev = { ...initialState, ...prevRaw };
-          return typeof update === "function"
-            ? update(prev)
-            : { ...prev, ...update };
+          const next = typeof update === "function" ? update(prev) : update;
+
+          const definedValues = Object.entries(next).reduce(
+            (acc, [key, value]) => {
+              if (value !== undefined) {
+                acc[key] = value;
+              }
+              return acc;
+            },
+            {} as Record<string, any>
+          );
+
+          const result = { ...prev };
+          Object.keys(next).forEach((key) => {
+            if (next[key] === undefined) {
+              delete result[key];
+            }
+          });
+
+          return { ...result, ...definedValues };
         },
       });
     }
